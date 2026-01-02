@@ -1,0 +1,78 @@
+# Trend Following Trading System Configuration
+
+data:
+  source: yfinance
+  database_path: data/market_data.db
+  etf_symbols:
+    - EEM    # iShares MSCI Emerging Market
+    - GNR    # SPDR Global Natural Resources
+    - IWO    # iShares Russell 2000 Growth
+    - JNK    # SPDR High-Yield Bond
+    - KBE    # SPDR S&P Bank
+    - KRE    # SPDR Regional Banks
+    - SPDW   # SPDR Developed World, Ex-US Stocks
+    - SPSM   # SPDR S&P 600 Small-Cap Stocks
+    - XAR    # SPDR Aerospace & Defense
+    - XBI    # SPDR Biotech
+    - XES    # SPDR Oil & Gas Equipment & Services
+    - XHB    # SPDR S&P Homebuilders
+    - XLB    # SPDR Materials Select Sector
+    - XLC    # SPDR Communication Services
+    - XLE    # SPDR Energy Select Sector
+    - XLF    # SPDR Financial Select Sector
+    - XLI    # SPDR Industrial Select Sector
+    - XLK    # SPDR Technology Select Sector
+    - XLP    # SPDR Consumer Staples
+    - XLU    # SPDR Utilities Select Sector
+    - XLV    # SPDR Healthcare Select Sector
+    - XLY    # SPDR Consumer Discretionary Select Sector
+    - XME    # SPDR S&P Metals & Mining
+    - XOP    # SPDR Oil & Gas Exploration & Production
+    - XPH    # SPDR Pharmaceuticals
+    - XRT    # SPDR S&P Retail
+    - XSD    # SPDR S&P Semiconductor Sector
+    - XSW    # SPDR Software and Services
+    - XTL    # SPDR S&P Telecom
+    - XTN    # SPDR S&P Transportation
+  benchmark_symbol: SPY
+
+strategy:
+  name: keltner_breakout
+  keltner:
+    ema_period: 20           # Optimized (was 50)
+    atr_period: 20
+    atr_multiplier: 1.5      # Optimized (was 2.0) - tighter channels
+  stops:
+    initial_atr_multiple: 3.0   # Optimized (was 2.0) - wider stops
+    trailing_atr_multiple: 3.0  # Optimized (was 2.0)
+    trailing_activation_atr: 1.0
+
+risk_management:
+  position_sizing:
+    method: volatility_atr
+    volatility_target_pct: 2.0
+    max_position_pct: 15.0
+  portfolio:
+    max_gross_exposure_pct: 100.0
+  var:
+    confidence_level: 0.95
+    time_horizon_days: 20
+    max_var_pct: 20.0
+    breach_action: block_new_positions
+
+portfolio:
+  starting_capital: 100000
+  signal_priority: strongest_first
+  cash_earns_risk_free: true
+  include_dividends: false
+  transaction_costs: 0.0
+  slippage: 0.0
+
+backtest:
+  execution_timing: next_open
+  benchmark: SPY
+
+optimization:
+  method: random_search
+  iterations: 100
+  out_of_sample_split: 0.2

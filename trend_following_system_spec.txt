@@ -1,0 +1,615 @@
+================================================================================
+TREND FOLLOWING TRADING SYSTEM - TECHNICAL SPECIFICATION
+================================================================================
+
+Project: Algorithmic Trend Following Trading System
+Based On: Tom Basso's "All-Weather Trader" principles
+Language: Python
+Interface: Jupyter Notebooks
+
+================================================================================
+OVERVIEW
+================================================================================
+
+Build a trend following trading system that trades a portfolio of 30 sector ETFs
+both long and short. The system uses Keltner Channel breakouts for entry signals,
+ATR-based position sizing and stop losses, and VaR-based portfolio risk management.
+
+Key Basso Principles to Incorporate:
+- Position sizing matters more than entry signals
+- Keep systems simple and robust
+- Let trends run, cut losses short
+- Diversify across markets and timeframes
+
+================================================================================
+COMPONENT 1: DATA MANAGEMENT LAYER
+================================================================================
+
+DATA SOURCE:
+- Provider: Yahoo Finance via yfinance Python library
+- No API key required
+
+DATA SPECIFICATIONS:
+- Timeframe: Daily bars (OHLCV)
+- History: As far back as available for each ETF
+- Handle varying start dates across ETFs gracefully
+
+ETF UNIVERSE (30 ETFs from Tom Basso's list):
+Ticker  | Name
+--------|------------------------------------------
+EEM     | iShares MSCI Emerging Market
+GNR     | SPDR Global Natural Resources
+IWO     | iShares Russell 2000 Growth
+JNK     | SPDR High-Yield Bond
+KBE     | SPDR S&P Bank
+KRE     | SPDR Regional Banks
+SPDW    | SPDR Developed World, Ex-US Stocks
+SPSM    | SPDR S&P 600 Small-Cap Stocks
+XAR     | SPDR Aerospace & Defense
+XBI     | SPDR Biotech
+XES     | SPDR Oil & Gas Equipment & Services
+XHB     | SPDR S&P Homebuilders
+XLB     | SPDR Materials Select Sector
+XLC     | SPDR Communication Services
+XLE     | SPDR Energy Select Sector
+XLF     | SPDR Financial Select Sector
+XLI     | SPDR Industrial Select Sector
+XLK     | SPDR Technology Select Sector
+XLP     | SPDR Consumer Staples
+XLU     | SPDR Utilities Select Sector
+XLV     | SPDR Healthcare Select Sector
+XLY     | SPDR Consumer Discretionary Select Sector
+XME     | SPDR S&P Metals & Mining
+XOP     | SPDR Oil & Gas Exploration & Production
+XPH     | SPDR Pharmaceuticals
+XRT     | SPDR S&P Retail
+XSD     | SPDR S&P Semiconductor Sector
+XSW     | SPDR Software and Services
+XTL     | SPDR S&P Telecom
+XTN     | SPDR S&P Transportation
+
+ASSET CLASSES COVERED:
+- US Equity Sectors
+- International Equities
+- Fixed Income
+- Commodities-related
+
+ETF LIST MANAGEMENT:
+- Store ETF list in configuration file
+- Support easy addition/removal of ETFs
+
+DATA STORAGE:
+- Database: SQLite
+- Single database file for all ETF data
+- Schema should include: symbol, date, open, high, low, close, volume
+- Index on symbol and date for fast queries
+
+DATA UPDATES:
+- Manual refresh: Function/script to update data on demand
+- Scheduled automatic updates: Optional scheduler for daily updates after market close
+- Incremental updates: Only fetch new data since last update
+
+================================================================================
+COMPONENT 2: SIGNAL GENERATION ENGINE
+================================================================================
+
+ARCHITECTURE:
+- Design for multiple indicator support (strategy pattern or similar)
+- Primary implementation: Keltner Channels
+- Easy to add new indicators in the future
+
+KELTNER CHANNEL IMPLEMENTATION:
+- Middle line: Exponential Moving Average (EMA)
+- Upper band: EMA + (ATR × multiplier)
+- Lower band: EMA - (ATR × multiplier)
+
+DEFAULT KELTNER PARAMETERS:
+- EMA Period: 50 days
+- ATR Period: 20 days
+- ATR Multiplier: 2.0
+
+ENTRY SIGNALS:
+- Long Entry: Price closes above upper Keltner band
+- Short Entry: Price closes below lower Keltner band
+
+EXIT SIGNALS / STOP LOSS RULES:
+- Initial (Fixed) Stop: 2× ATR from entry price
+  - Long: Entry price - (2 × ATR)
+  - Short: Entry price + (2 × ATR)
+- Trailing Stop: 2× ATR from highest high (longs) or lowest low (shorts)
+- Trailing Stop Activation: After position reaches 1× ATR profit
+- Before trailing activation, fixed stop remains in place
+- Exit occurs when price hits either stop
+
+CONFIRMATION FILTERS:
+- None initially (keep it simple per Basso's philosophy)
+- Architecture should support optional filters for future testing
+- Suggested future filter: 200-day MA trend filter (toggle on/off)
+
+RE-ENTRY RULES:
+- After a stop-out, require fresh signal for re-entry
+- Price must return inside Keltner bands first
+- Then a new breakout must occur to trigger entry
+- Prevents immediate whipsaw re-entries
+
+================================================================================
+COMPONENT 3: POSITION SIZING & RISK MANAGEMENT
+================================================================================
+
+POSITION SIZING METHOD:
+- Volatility-based using ATR
+- Equalize volatility contribution across positions
+
+VOLATILITY TARGET:
+- 2.0% of equity per ATR
+- Formula: Position Size = (Equity × 0.02) / ATR
+- More volatile ETFs get smaller positions
+- Less volatile ETFs get larger positions
+
+POSITION LIMITS:
+- Maximum single position: 15% of equity
+- If volatility sizing suggests > 15%, cap at 15%
+
+PORTFOLIO EXPOSURE LIMITS:
+- Maximum gross exposure: 100% of equity (no leverage)
+- No directional limits (can be 100% long, 100% short, or any mix)
+- Gross exposure = sum of absolute position values / equity
+
+PORTFOLIO RISK CONTROL - VALUE AT RISK (VaR):
+- Method: Historical VaR
+- Confidence Level: 95%
+- Time Horizon: 20 days
+- Maximum VaR Threshold: 20% of equity
+
+VaR CALCULATION:
+- Use historical returns of current portfolio holdings
+- Calculate 20-day portfolio returns from historical data
+- 95th percentile of losses = VaR estimate
+
+VaR BREACH RESPONSE:
+- When portfolio VaR exceeds 20% threshold:
+  - Block new positions (do not open any new trades)
+  - Let existing positions continue to run
+  - Resume new positions when VaR drops below 20%
+
+================================================================================
+COMPONENT 4: PORTFOLIO MANAGEMENT
+================================================================================
+
+STARTING CAPITAL:
+- Default: $100,000
+- Make configurable via config file
+
+MULTIPLE SIGNALS HANDLING:
+- When multiple ETFs signal on same day with insufficient capital/VaR headroom:
+- Priority: Strongest signal first
+- Rank by breakout strength (distance price broke through band)
+- Allocate capital in priority order until constraints hit
+
+CASH MANAGEMENT:
+- Uninvested cash earns risk-free rate
+- Use historical T-bill rates for each period in backtest
+- Data source: Will need to fetch historical T-bill rates (e.g., from FRED or similar)
+
+DIVIDENDS:
+- Ignore dividends
+- Track price returns only
+- Use unadjusted price data
+
+TRANSACTION COSTS:
+- None (no commissions modeled)
+
+SLIPPAGE:
+- None (assume fills at exact price)
+
+================================================================================
+COMPONENT 5: BACKTESTING ENGINE
+================================================================================
+
+BACKTESTING APPROACH:
+- Event-driven (bar-by-bar simulation)
+- Process each day sequentially
+- Properly handles portfolio constraints, VaR checks, position sizing
+
+SIMULATION FLOW (per bar):
+1. Update prices for all holdings
+2. Check stop losses, execute any exits
+3. Update trailing stops for positions past activation threshold
+4. Calculate portfolio value and VaR
+5. Generate new signals from today's close
+6. If VaR < threshold, process new entries by priority
+7. Log trades and portfolio state
+8. Advance to next bar
+
+PERFORMANCE METRICS TO CALCULATE:
+
+Return Metrics:
+- Total Return (%)
+- Annualized Return (CAGR)
+- Monthly returns breakdown
+- Yearly returns breakdown
+
+Risk Metrics:
+- Maximum Drawdown (%)
+- Annualized Volatility (Standard Deviation)
+- Downside Deviation
+- VaR at 95% confidence
+
+Risk-Adjusted Metrics:
+- Sharpe Ratio (use risk-free rate)
+- Sortino Ratio
+- Calmar Ratio (CAGR / Max Drawdown)
+
+Trade Statistics:
+- Total number of trades
+- Win rate (%)
+- Average winning trade
+- Average losing trade
+- Profit factor (gross profit / gross loss)
+- Average trade duration (days)
+- Longest winning streak
+- Longest losing streak
+
+Benchmark Comparison:
+- Alpha vs SPY
+- Beta vs SPY
+- Correlation to SPY
+
+BENCHMARK:
+- SPY (S&P 500 ETF)
+- Download SPY data alongside ETF universe
+
+VISUALIZATIONS TO GENERATE:
+
+Equity & Performance:
+- Equity curve (portfolio value over time)
+- Drawdown chart (underwater curve)
+- Monthly returns heatmap
+- Annual returns bar chart
+- Rolling Sharpe ratio
+
+Comparison:
+- Equity curve vs SPY benchmark overlay
+- Relative performance chart (portfolio / benchmark)
+
+Trade Analysis:
+- Trade returns distribution (histogram)
+- Win/loss breakdown by ETF
+- Trade duration distribution
+- Long vs short performance comparison
+
+Risk:
+- Rolling volatility
+- Rolling VaR over time
+- Exposure over time (long %, short %, net %)
+- Position concentration over time
+
+PARAMETER OPTIMIZATION:
+- Method: Random search
+- Specify parameter ranges and number of iterations
+- Return results sorted by target metric (e.g., Sharpe ratio)
+
+OUT-OF-SAMPLE TESTING:
+- Support splitting data into in-sample and out-of-sample periods
+- User specifies split date or percentage
+- Optimize on in-sample, validate on out-of-sample
+- Report metrics for both periods separately
+
+================================================================================
+COMPONENT 6: EXECUTION LAYER
+================================================================================
+
+ORDER TYPES SUPPORTED:
+- Market orders
+- Limit orders
+- Stop orders
+- Stop-limit orders
+
+EXECUTION TIMING:
+- Signals generated from today's close
+- Orders execute at next day's open
+- Use next day's open price for fills
+
+LIVE TRADING PREPARATION:
+- Design for future Interactive Brokers integration
+- Abstract broker interface (can swap implementations)
+- IB API structure in mind for order submission, position tracking
+
+ORDER MANAGEMENT:
+- Basic logging to console and/or file
+- Log format: timestamp, symbol, side (BUY/SELL), quantity, order type, price, status
+- No database storage for orders (keep simple)
+
+================================================================================
+COMPONENT 7: REPORTING & ANALYTICS
+================================================================================
+
+REPORT OUTPUT:
+- Console output only
+- Print results to terminal or Jupyter notebook
+- No HTML, PDF, or Excel exports
+
+TRADE LOG:
+- Basic trade log
+- Fields: entry date, exit date, symbol, side (LONG/SHORT), entry price, exit price, P&L ($), P&L (%)
+- Accessible as pandas DataFrame for further analysis
+
+PORTFOLIO ANALYTICS:
+- None (keep simple)
+- Backtest reports and visualizations are sufficient
+
+ALERTS/NOTIFICATIONS:
+- None
+- Manual system checking
+
+================================================================================
+COMPONENT 8: CONFIGURATION & PARAMETERS
+================================================================================
+
+CONFIGURATION STORAGE:
+- External YAML configuration file
+- Single file: config.yaml
+
+CONFIGURATION STRUCTURE:
+```yaml
+# config.yaml
+
+data:
+  source: yfinance
+  database_path: data/market_data.db
+  etf_symbols:
+    - EEM
+    - GNR
+    - IWO
+    - JNK
+    - KBE
+    - KRE
+    - SPDW
+    - SPSM
+    - XAR
+    - XBI
+    - XES
+    - XHB
+    - XLB
+    - XLC
+    - XLE
+    - XLF
+    - XLI
+    - XLK
+    - XLP
+    - XLU
+    - XLV
+    - XLY
+    - XME
+    - XOP
+    - XPH
+    - XRT
+    - XSD
+    - XSW
+    - XTL
+    - XTN
+  benchmark_symbol: SPY
+
+strategy:
+  name: keltner_breakout
+  keltner:
+    ema_period: 50
+    atr_period: 20
+    atr_multiplier: 2.0
+  stops:
+    initial_atr_multiple: 2.0
+    trailing_atr_multiple: 2.0
+    trailing_activation_atr: 1.0
+
+risk_management:
+  position_sizing:
+    method: volatility_atr
+    volatility_target_pct: 2.0
+    max_position_pct: 15.0
+  portfolio:
+    max_gross_exposure_pct: 100.0
+  var:
+    confidence_level: 0.95
+    time_horizon_days: 20
+    max_var_pct: 20.0
+    breach_action: block_new_positions
+
+portfolio:
+  starting_capital: 100000
+  signal_priority: strongest_first
+  cash_earns_risk_free: true
+  include_dividends: false
+  transaction_costs: 0.0
+  slippage: 0.0
+
+backtest:
+  execution_timing: next_open
+  benchmark: SPY
+
+optimization:
+  method: random_search
+  out_of_sample_split: 0.2  # 20% for out-of-sample
+```
+
+VALIDATION:
+- Basic validation on startup
+- Check required fields exist
+- Check types are correct
+- Fail fast with clear error messages if validation fails
+
+================================================================================
+COMPONENT 9: JUPYTER NOTEBOOK INTERFACE
+================================================================================
+
+STARTER NOTEBOOKS:
+- quick_start.ipynb - Basic notebook showing how to run a backtest
+
+NOTEBOOK CONTENTS (quick_start.ipynb):
+1. Import system modules
+2. Load configuration
+3. Fetch/update data
+4. Run backtest with default settings
+5. Display performance metrics
+6. Show key visualizations (equity curve, drawdown, trade summary)
+
+INTERACTIVITY:
+- Static code cells only
+- No ipywidgets or interactive elements
+- User modifies code directly
+
+VISUALIZATION LIBRARY:
+- Matplotlib for all charts
+- Static images (no interactive zooming/hovering)
+
+DOCUMENTATION:
+- Minimal comments
+- Brief code comments explaining key steps
+- Assumes user familiarity with Python and the system
+
+================================================================================
+PROJECT STRUCTURE
+================================================================================
+
+Suggested directory structure:
+
+trend_following_system/
+├── config.yaml                 # Main configuration file
+├── requirements.txt            # Python dependencies
+├── README.md                   # Project documentation
+│
+├── data/                       # Data storage
+│   └── market_data.db          # SQLite database
+│
+├── src/                        # Source code
+│   ├── __init__.py
+│   ├── data/                   # Data management
+│   │   ├── __init__.py
+│   │   ├── fetcher.py          # yfinance data fetching
+│   │   ├── database.py         # SQLite operations
+│   │   └── scheduler.py        # Auto-update scheduler
+│   │
+│   ├── signals/                # Signal generation
+│   │   ├── __init__.py
+│   │   ├── base.py             # Base indicator interface
+│   │   ├── keltner.py          # Keltner Channel implementation
+│   │   └── indicators.py       # Technical indicator calculations
+│   │
+│   ├── risk/                   # Risk management
+│   │   ├── __init__.py
+│   │   ├── position_sizing.py  # ATR-based position sizing
+│   │   └── var.py              # VaR calculations
+│   │
+│   ├── portfolio/              # Portfolio management
+│   │   ├── __init__.py
+│   │   ├── portfolio.py        # Portfolio state tracking
+│   │   └── orders.py           # Order generation
+│   │
+│   ├── backtest/               # Backtesting engine
+│   │   ├── __init__.py
+│   │   ├── engine.py           # Event-driven backtest engine
+│   │   ├── metrics.py          # Performance metrics calculations
+│   │   └── optimization.py     # Random search optimization
+│   │
+│   ├── execution/              # Execution layer
+│   │   ├── __init__.py
+│   │   ├── broker_base.py      # Abstract broker interface
+│   │   └── ib_broker.py        # Interactive Brokers stub
+│   │
+│   ├── reporting/              # Reporting & visualization
+│   │   ├── __init__.py
+│   │   ├── console.py          # Console output formatting
+│   │   └── charts.py           # Matplotlib visualizations
+│   │
+│   └── utils/                  # Utilities
+│       ├── __init__.py
+│       ├── config.py           # YAML config loading & validation
+│       └── logging.py          # Logging setup
+│
+├── notebooks/                  # Jupyter notebooks
+│   └── quick_start.ipynb       # Quick start notebook
+│
+└── tests/                      # Unit tests (optional)
+    └── ...
+
+================================================================================
+PYTHON DEPENDENCIES
+================================================================================
+
+Core:
+- python >= 3.9
+- pandas
+- numpy
+- yfinance
+- sqlite3 (built-in)
+- pyyaml
+
+Technical Analysis:
+- ta (or implement indicators manually)
+
+Visualization:
+- matplotlib
+
+Scheduling (for auto-updates):
+- schedule (or APScheduler)
+
+Jupyter:
+- jupyter
+- notebook
+
+Future (for IB integration):
+- ib_insync (Interactive Brokers)
+
+================================================================================
+KEY IMPLEMENTATION NOTES
+================================================================================
+
+1. DATA HANDLING:
+   - Handle missing data gracefully (some ETFs have shorter history)
+   - Forward-fill missing values within reason
+   - Log warnings for data gaps
+
+2. SIGNAL GENERATION:
+   - Calculate indicators fresh each day (don't look ahead)
+   - Track "inside band" state for re-entry logic
+   - Store signal metadata for analysis
+
+3. POSITION SIZING:
+   - Recalculate ATR-based size at entry time
+   - Apply position cap after volatility calculation
+   - Check VaR before each new position
+
+4. STOPS:
+   - Track highest high / lowest low since entry for trailing stops
+   - Only activate trailing after profit threshold reached
+   - Check stops at the open of each bar (using open price)
+
+5. BACKTEST ENGINE:
+   - Process exits before entries each bar
+   - Track cash including risk-free rate accrual
+   - Log detailed state for debugging
+
+6. CONFIGURATION:
+   - Make all magic numbers configurable
+   - Validate config on load
+   - Provide sensible defaults
+
+7. EXTENSIBILITY:
+   - Use base classes / interfaces for indicators
+   - Design for easy addition of new strategies
+   - Keep modules loosely coupled
+
+================================================================================
+TESTING REQUIREMENTS
+================================================================================
+
+The system should be validated by:
+
+1. Single ETF test: Run backtest on one ETF to verify signals, stops, and P&L
+2. Multiple ETF test: Verify portfolio constraints and signal prioritization
+3. VaR test: Verify positions are blocked when VaR exceeds threshold
+4. Optimization test: Run random search and verify parameter exploration
+5. Out-of-sample test: Verify proper data splitting and separate metrics
+
+================================================================================
+END OF SPECIFICATION
+================================================================================

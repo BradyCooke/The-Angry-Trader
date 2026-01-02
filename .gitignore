@@ -55,5 +55,10 @@ Thumbs.db
 .pytest_cache/
 htmlcov/
 
+# Data files (generated)
+data/*.db
+output/
+
 # mypy
 .mypy_cache/
+.vercel
