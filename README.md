@@ -2,13 +2,25 @@
 
 A systematic trend-following trading system based on Tom Basso's "All-Weather Trader" principles. Trades 30 sector ETFs long and short using Keltner Channel breakouts with ATR-based position sizing and VaR risk management.
 
+## Performance (2007-2025)
+
+| Metric | Strategy | SPY (Buy & Hold) |
+|--------|----------|------------------|
+| CAGR | 8.45% | 8.64% |
+| Max Drawdown | **41.7%** | 56.5% |
+| Sharpe Ratio | **0.48** | 0.44 |
+| Calmar Ratio | **0.20** | 0.15 |
+
+The strategy achieves similar returns to SPY with **significantly lower drawdowns** and better risk-adjusted returns.
+
 ## Features
 
 - **Keltner Channel Breakouts**: Enter positions when price breaks above/below the channel
 - **ATR-Based Position Sizing**: Target 2% volatility per position, max 15% allocation
 - **VaR Risk Management**: 95% confidence VaR with 20% portfolio limit
-- **Trailing Stops**: Activate after 1×ATR profit, trail at 2×ATR
+- **Trailing Stops**: Activate after 1×ATR profit, trail at 2.5×ATR
 - **Event-Driven Backtesting**: Full historical simulation with comprehensive metrics
+- **Paper Trading**: Daily signal monitoring with portfolio tracking
 - **30 Sector ETFs**: Diversified universe across all market sectors
 
 ## Quick Start
@@ -25,7 +37,15 @@ A systematic trend-following trading system based on Tom Basso's "All-Weather Tr
    jupyter lab notebooks/quick_start.ipynb
    ```
 
-3. **Run Tests**
+3. **Paper Trading**
+   ```bash
+   python paper_trade.py           # Show today's signals
+   python paper_trade.py --execute # Execute signals (update portfolio)
+   python paper_trade.py --status  # Show portfolio status only
+   python paper_trade.py --reset   # Reset paper portfolio
+   ```
+
+4. **Run Tests**
    ```bash
    python -m pytest tests/ -v
    ```
@@ -35,6 +55,8 @@ A systematic trend-following trading system based on Tom Basso's "All-Weather Tr
 ```
 trend-follower/
 ├── config.yaml              # Strategy configuration
+├── paper_trade.py           # Daily signal monitoring
+├── backtest_*_variant.py    # LLM optimization experiments
 ├── src/
 │   ├── utils/               # Config loading, logging
 │   ├── data/                # Database, data fetching
@@ -44,21 +66,25 @@ trend-follower/
 │   ├── backtest/            # Backtesting engine, metrics
 │   ├── reporting/           # Console output, charts
 │   └── execution/           # Broker interface (stub)
-├── tests/                   # Unit tests (174 tests)
+├── tests/                   # Unit tests
 ├── notebooks/               # Jupyter notebooks
 └── data/                    # SQLite database
 ```
 
 ## Configuration
 
-Edit `config.yaml` to customize:
+Edit `config.yaml` to customize. Current optimized parameters:
 
 ```yaml
 strategy:
   keltner:
-    ema_period: 50          # EMA lookback
+    ema_period: 35          # EMA lookback (optimized)
     atr_period: 20          # ATR lookback
     atr_multiplier: 2.0     # Channel width
+  stops:
+    initial_atr_multiple: 2.5    # Initial stop distance
+    trailing_atr_multiple: 2.5   # Trailing stop distance
+    trailing_activation_atr: 1.0 # Profit before trailing activates
 
 risk_management:
   position_sizing:
@@ -91,7 +117,7 @@ portfolio:
 ## Strategy Logic
 
 ### Entry Rules
-1. Calculate Keltner Channels: EMA(50) ± ATR(20) × 2
+1. Calculate Keltner Channels: EMA(35) ± ATR(20) × 2.0
 2. **Long**: Close breaks above upper band
 3. **Short**: Close breaks below lower band
 4. Must be inside bands before re-entry allowed
@@ -103,8 +129,8 @@ Capped at 15% of equity
 ```
 
 ### Stop Loss
-- **Initial**: Entry price ± 2×ATR
-- **Trailing**: Activates after 1×ATR profit, trails at 2×ATR from high/low
+- **Initial**: Entry price ± 2.5×ATR
+- **Trailing**: Activates after 1×ATR profit, trails at 2.5×ATR from high/low
 
 ### Risk Management
 - Calculate 95% historical VaR daily
