@@ -2,17 +2,17 @@
 
 A systematic trend-following trading system based on Tom Basso's "All-Weather Trader" principles. Trades 30 sector ETFs long and short using Keltner Channel breakouts with ATR-based position sizing and VaR risk management.
 
-## Performance (2010-2025)
+## Performance (2007-2025)
 
 | Metric | Strategy | SPY (Buy & Hold) |
 |--------|----------|------------------|
-| CAGR | 9.49% | 11.89% |
-| Max Drawdown | **20.4%** | 34.1% |
-| Sharpe Ratio | 0.70 | 0.74 |
-| Calmar Ratio | **0.47** | 0.35 |
-| Profit Factor | 1.03 | - |
+| CAGR | 8.07% | 8.65% |
+| Max Drawdown | **32.9%** | 56.5% |
+| Sharpe Ratio | 0.57 | 0.52 |
+| Calmar Ratio | **0.25** | 0.15 |
+| Profit Factor | 1.02 | - |
 
-The strategy achieves **significantly lower drawdowns** (20% vs 34%) and **better risk-adjusted returns** (Calmar 0.47 vs 0.35). Quarter-size shorts reduce drawdown while maintaining profitability.
+The strategy achieves **similar returns with significantly lower drawdowns** (33% vs 56%) - it avoided the worst of the 2008 crisis. Quarter-size shorts further reduce risk while maintaining profitability.
 
 ## Features
 
