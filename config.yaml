@@ -39,9 +39,9 @@ data:
 strategy:
   name: keltner_breakout
   keltner:
-    ema_period: 35           # Optimized for 2007-2026 (was 20)
+    ema_period: 35           # Optimized for 2010-2025
     atr_period: 20
-    atr_multiplier: 2.0      # Optimized - wider channels, fewer signals
+    atr_multiplier: 1.5      # Optimized - tighter channels, lower drawdown
   stops:
     initial_atr_multiple: 2.5   # Optimized - tighter stops, lower drawdown
     trailing_atr_multiple: 2.5  # Optimized (was 3.0)

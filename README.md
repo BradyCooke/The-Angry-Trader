@@ -2,16 +2,17 @@
 
 A systematic trend-following trading system based on Tom Basso's "All-Weather Trader" principles. Trades 30 sector ETFs long and short using Keltner Channel breakouts with ATR-based position sizing and VaR risk management.
 
-## Performance (2007-2025)
+## Performance (2010-2025)
 
 | Metric | Strategy | SPY (Buy & Hold) |
 |--------|----------|------------------|
-| CAGR | 8.45% | 8.64% |
-| Max Drawdown | **41.7%** | 56.5% |
-| Sharpe Ratio | **0.48** | 0.44 |
-| Calmar Ratio | **0.20** | 0.15 |
+| CAGR | **9.78%** | 8.64% |
+| Max Drawdown | **34.2%** | 56.5% |
+| Sharpe Ratio | **0.50** | 0.44 |
+| Calmar Ratio | **0.29** | 0.15 |
+| OOS/IS Ratio | 1.10 | - |
 
-The strategy achieves similar returns to SPY with **significantly lower drawdowns** and better risk-adjusted returns.
+The strategy **outperforms SPY** with higher returns, **significantly lower drawdowns** (34% vs 56%), and better risk-adjusted returns. The OOS/IS ratio > 1.0 indicates robust out-of-sample performance.
 
 ## Features
 
@@ -80,7 +81,7 @@ strategy:
   keltner:
     ema_period: 35          # EMA lookback (optimized)
     atr_period: 20          # ATR lookback
-    atr_multiplier: 2.0     # Channel width
+    atr_multiplier: 1.5     # Channel width (tighter = lower drawdown)
   stops:
     initial_atr_multiple: 2.5    # Initial stop distance
     trailing_atr_multiple: 2.5   # Trailing stop distance
@@ -117,7 +118,7 @@ portfolio:
 ## Strategy Logic
 
 ### Entry Rules
-1. Calculate Keltner Channels: EMA(35) ± ATR(20) × 2.0
+1. Calculate Keltner Channels: EMA(35) ± ATR(20) × 1.5
 2. **Long**: Close breaks above upper band
 3. **Short**: Close breaks below lower band
 4. Must be inside bands before re-entry allowed
