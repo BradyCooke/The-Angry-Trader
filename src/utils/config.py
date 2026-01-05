@@ -37,6 +37,7 @@ class PositionSizingConfig:
     method: str = "volatility_atr"
     volatility_target_pct: float = 2.0
     max_position_pct: float = 15.0
+    short_size_multiplier: float = 1.0  # Multiplier for short position sizes (0.25 = quarter size)
 
 
 @dataclass

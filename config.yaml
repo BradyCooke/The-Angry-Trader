@@ -52,6 +52,7 @@ risk_management:
     method: volatility_atr
     volatility_target_pct: 2.0
     max_position_pct: 15.0
+    short_size_multiplier: 0.25  # Quarter-size shorts to reduce drawdown
   portfolio:
     max_gross_exposure_pct: 100.0
   var:

@@ -389,11 +389,18 @@ class BacktestEngine:
                 current_exposure_pct=exposure_pct,
             )
 
-            if size.shares <= 0:
+            shares = size.shares
+
+            # Apply short size multiplier for short positions
+            if signal.signal_type == SignalType.SHORT:
+                short_mult = self.config.risk_management.position_sizing.short_size_multiplier
+                shares = int(shares * short_mult)
+
+            if shares <= 0:
                 continue
 
             # Check if we have enough cash
-            cost = size.shares * signal.price
+            cost = shares * signal.price
             if cost > portfolio.cash:
                 continue
 
@@ -402,7 +409,7 @@ class BacktestEngine:
                 portfolio.open_position(
                     symbol=signal.symbol,
                     side=signal.signal_type,
-                    shares=size.shares,
+                    shares=shares,
                     entry_price=signal.price,
                     entry_date=current_date,
                     stop_price=signal.stop_price or (signal.price - 2 * signal.atr),

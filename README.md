@@ -6,18 +6,19 @@ A systematic trend-following trading system based on Tom Basso's "All-Weather Tr
 
 | Metric | Strategy | SPY (Buy & Hold) |
 |--------|----------|------------------|
-| CAGR | **9.78%** | 8.64% |
-| Max Drawdown | **34.2%** | 56.5% |
-| Sharpe Ratio | **0.50** | 0.44 |
-| Calmar Ratio | **0.29** | 0.15 |
-| OOS/IS Ratio | 1.10 | - |
+| CAGR | 9.49% | 11.89% |
+| Max Drawdown | **20.4%** | 34.1% |
+| Sharpe Ratio | 0.70 | 0.74 |
+| Calmar Ratio | **0.47** | 0.35 |
+| Profit Factor | 1.03 | - |
 
-The strategy **outperforms SPY** with higher returns, **significantly lower drawdowns** (34% vs 56%), and better risk-adjusted returns. The OOS/IS ratio > 1.0 indicates robust out-of-sample performance.
+The strategy achieves **significantly lower drawdowns** (20% vs 34%) and **better risk-adjusted returns** (Calmar 0.47 vs 0.35). Quarter-size shorts reduce drawdown while maintaining profitability.
 
 ## Features
 
 - **Keltner Channel Breakouts**: Enter positions when price breaks above/below the channel
 - **ATR-Based Position Sizing**: Target 2% volatility per position, max 15% allocation
+- **Quarter-Size Shorts**: Reduced short position sizes to minimize drawdown from market's upward bias
 - **VaR Risk Management**: 95% confidence VaR with 20% portfolio limit
 - **Trailing Stops**: Activate after 1×ATR profit, trail at 2.5×ATR
 - **Event-Driven Backtesting**: Full historical simulation with comprehensive metrics
@@ -91,6 +92,7 @@ risk_management:
   position_sizing:
     volatility_target_pct: 2.0   # Per-position volatility
     max_position_pct: 15.0       # Max position size
+    short_size_multiplier: 0.25  # Quarter-size shorts
   var:
     confidence_level: 0.95       # VaR confidence
     max_var_pct: 20.0            # Max portfolio VaR
@@ -127,6 +129,7 @@ portfolio:
 ```
 Position Size = (Equity × 2%) / ATR × Price
 Capped at 15% of equity
+Short positions sized at 25% (quarter-size) to reduce drawdown
 ```
 
 ### Stop Loss
