@@ -1,4 +1,4 @@
-# Trend Following Trading System
+# The Angry Trader Trend Following Trading System
 
 A systematic trend-following trading system based on Tom Basso's "All-Weather Trader" principles. Trades 30 sector ETFs long and short using Keltner Channel breakouts with ATR-based position sizing and VaR risk management.
 
